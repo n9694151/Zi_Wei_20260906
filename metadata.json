@@ -1,0 +1,7 @@
+{
+  "name": "紫微斗數 AI 命盤排盤系統",
+  "description": "具備高可靠度、可驗證的確定性紫微斗數排盤 Engine，支援三合、飛星、河洛與欽天四化分析，搭配 Gemini AI 專業命盤解讀。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
