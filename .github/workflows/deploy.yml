@@ -1,0 +1,64 @@
+name: Deploy Ziwei Astrology to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# 設定 GitHub Pages 所需之權限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 避免多個並行部署互相覆蓋
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 檢出專案程式碼 (Checkout repository)
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js 執行環境 (Setup Node.js)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: 安裝專案套件依賴 (Install Dependencies)
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: 執行 TypeScript 靜態型別檢查 (Type Check)
+        run: npm run typecheck
+
+      - name: 執行紫微排盤核心黃金驗證測試 (Run Golden Test)
+        run: npm run test
+
+      - name: 建置前端靜態網頁 (Build Static Assets)
+        run: npm run build:client
+
+      - name: 設定 GitHub Pages 環境 (Setup Pages)
+        uses: actions/configure-pages@v5
+
+      - name: 上傳靜態成果 (Upload Artifact)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: 部署至 GitHub Pages (Deploy to GitHub Pages)
+        id: deployment
+        uses: actions/deploy-pages@v4
