@@ -343,7 +343,13 @@ export default function App() {
         )}
 
         {activeTab === 'ai' && (
-          <GeminiInterpretation chart={chart} analysis={analysis} />
+          <GeminiInterpretation
+            chart={chart}
+            analysis={analysis}
+            selectedMajorLimitIndex={selectedMajorLimitIndex}
+            selectedAnnualYear={selectedAnnualYear}
+            selectedPalaceName={selectedPalaceName}
+          />
         )}
 
         {activeTab === 'form' && (
