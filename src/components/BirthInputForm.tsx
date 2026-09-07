@@ -133,7 +133,7 @@ export const BirthInputForm: React.FC<BirthInputFormProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-800 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-3 border-t border-slate-800 text-sm">
         {/* Timezone & Location */}
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-1">出生地點 / 經度 (真太陽時校準)</label>
@@ -164,8 +164,22 @@ export const BirthInputForm: React.FC<BirthInputFormProps> = ({
             onChange={(e) => setFormData({ ...formData, ziHourRule: e.target.value as any })}
             className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
           >
-            <option value="ziEarly">早子時換日 (23:00~23:59 算翌日，預設正統)</option>
-            <option value="ziLate">夜子時不換日 (23:00~23:59 算當日晚子)</option>
+            <option value="ziEarly">早子時換日 (23:00~23:59 翌日)</option>
+            <option value="ziLate">夜子時不換日 (23:00~23:59 當日)</option>
+          </select>
+        </div>
+
+        {/* Major Limit Direction Rule */}
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1">大限行運步序 (Limit Rule)</label>
+          <select
+            value={formData.limitDirectionRule || 'auto'}
+            onChange={(e) => setFormData({ ...formData, limitDirectionRule: e.target.value as any })}
+            className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
+          >
+            <option value="auto">標準自動 (陽男陰女順、陰男陽女逆)</option>
+            <option value="clockwise">強制順行 (命➜父➜福)</option>
+            <option value="counterClockwise">強制逆行 (命➜兄➜夫)</option>
           </select>
         </div>
 

@@ -38,6 +38,7 @@ export interface BirthInput {
   timezone: string; // e.g. "Asia/Taipei"
   dst?: boolean;
   ziHourRule?: ZiHourRule; // "ziEarly" | "ziLate", default "ziEarly"
+  limitDirectionRule?: 'auto' | 'clockwise' | 'counterClockwise'; // 大限行運步序: 自動/順行/逆行
 }
 
 export interface GanzhiRecord {

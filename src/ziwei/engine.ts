@@ -96,6 +96,7 @@ export class ZiWeiEngine {
       input.gender,
       wuxingJuResult.wuxingJu,
       palaces,
+      input.limitDirectionRule,
     );
 
     // 11. Annual Charts (流年 - default first 12 years starting from birth or requested year)

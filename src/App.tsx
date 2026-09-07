@@ -64,6 +64,13 @@ export default function App() {
     setActiveTab('grid');
   };
 
+  const handleChangeLimitDirection = (rule: 'auto' | 'clockwise' | 'counterClockwise') => {
+    setInput((prev) => ({
+      ...prev,
+      limitDirectionRule: rule,
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
       {/* Top Banner */}
@@ -308,7 +315,13 @@ export default function App() {
           <SchoolAnalysisTabs analysis={analysis} chart={chart} />
         )}
 
-        {activeTab === 'limits' && <LimitsPanel chart={chart} />}
+        {activeTab === 'limits' && (
+          <LimitsPanel
+            chart={chart}
+            limitDirectionRule={input.limitDirectionRule}
+            onChangeLimitDirection={handleChangeLimitDirection}
+          />
+        )}
 
         {activeTab === 'ai' && (
           <GeminiInterpretation chart={chart} analysis={analysis} />

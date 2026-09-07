@@ -30,12 +30,22 @@ export class MajorLimitEngine {
     gender: Gender,
     wuxingJu: WuxingJu,
     palaces: PalaceInfo[],
+    overrideDirection?: 'auto' | 'clockwise' | 'counterClockwise',
   ): MajorLimit[] {
     const isYangGan = ['甲', '丙', '戊', '庚', '壬'].includes(yearGan);
     const isMale = gender === 'male' || gender === '男' || gender === '陽男' || gender === '陰男';
     const isYang = (isMale && isYangGan) || (!isMale && !isYangGan);
-    const direction = isYang ? 'clockwise' : 'counterClockwise';
 
+    let direction: 'clockwise' | 'counterClockwise';
+    if (overrideDirection === 'clockwise') {
+      direction = 'clockwise';
+    } else if (overrideDirection === 'counterClockwise') {
+      direction = 'counterClockwise';
+    } else {
+      direction = isYang ? 'clockwise' : 'counterClockwise';
+    }
+
+    const isClockwise = direction === 'clockwise';
     const startAge = JU_TO_START_AGE[wuxingJu];
     const limits: MajorLimit[] = [];
 
@@ -48,7 +58,7 @@ export class MajorLimitEngine {
       const curEnd = curStart + 9;
 
       let targetPalaceIdx: number;
-      if (isYang) {
+      if (isClockwise) {
         // Clockwise in palaces:
         // Index 0: 命宮, Index 11: 父母宮, Index 10: 福德宮, Index 9: 田宅宮...
         targetPalaceIdx = (mingIdx - i + 120) % totalPalaces;
@@ -72,12 +82,10 @@ export class MajorLimitEngine {
       limits.push(limitItem);
 
       // Attach major limit age info to palace
-      if (!p.majorLimit) {
-        p.majorLimit = {
-          startAge: curStart,
-          endAge: curEnd,
-        };
-      }
+      p.majorLimit = {
+        startAge: curStart,
+        endAge: curEnd,
+      };
     }
 
     return limits;
