@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { BirthInput, ChartJson } from './ziwei/types/chart';
-import { PalaceName } from './ziwei/types/constants';
+import { PalaceName, PALACE_NAMES } from './ziwei/types/constants';
 import { ZiWeiEngine } from './ziwei/engine';
 import { CombinedAnalysisEngine } from './ziwei/analysis/combined';
 import { ZiweiGrid } from './components/ZiweiGrid';
@@ -43,6 +43,12 @@ export default function App() {
   const [input, setInput] = useState<BirthInput>(GOLDEN_TEST_001_INPUT);
   const [selectedPalaceName, setSelectedPalaceName] = useState<PalaceName>('命宮');
   const [activeTab, setActiveTab] = useState<'grid' | 'schools' | 'limits' | 'ai' | 'form' | 'json'>('grid');
+
+  // 三盤合參狀態（大運與流年即時聯動）
+  const [selectedMajorLimitIndex, setSelectedMajorLimitIndex] = useState<number>(1);
+  const [selectedAnnualYear, setSelectedAnnualYear] = useState<number>(2026);
+  const [showMajorLimit, setShowMajorLimit] = useState<boolean>(true);
+  const [showAnnual, setShowAnnual] = useState<boolean>(true);
 
   // Deterministic calculation in pure TypeScript
   const chart: ChartJson = useMemo(() => {
@@ -227,6 +233,14 @@ export default function App() {
               selectedPalaceName={selectedPalaceName}
               onSelectPalace={setSelectedPalaceName}
               onQuickLoadGolden={handleLoadGolden}
+              selectedMajorLimitIndex={selectedMajorLimitIndex}
+              onSelectMajorLimitIndex={setSelectedMajorLimitIndex}
+              selectedAnnualYear={selectedAnnualYear}
+              onSelectAnnualYear={setSelectedAnnualYear}
+              showMajorLimit={showMajorLimit}
+              onToggleShowMajorLimit={() => setShowMajorLimit((prev) => !prev)}
+              showAnnual={showAnnual}
+              onToggleShowAnnual={() => setShowAnnual((prev) => !prev)}
             />
 
             {/* Selected Palace Inspector */}
@@ -234,7 +248,7 @@ export default function App() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
                 <div className="flex items-center gap-2.5">
                   <span className="font-serif font-bold text-lg text-white">
-                    【{selectedPalaceName}】三方四正與吉凶詳析
+                    【{selectedPalaceName}】三方四正與三盤合參
                   </span>
                   <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
                     地支 {chart.palaces.find((p) => p.name === selectedPalaceName)?.stem}
@@ -243,7 +257,7 @@ export default function App() {
                 </div>
 
                 <div className="text-xs text-slate-400">
-                  點擊天盤任一宮位即時聯動三方四正與夾宮
+                  即時聯動本命、大運與流年宮位疊宮關係
                 </div>
               </div>
 
@@ -255,55 +269,56 @@ export default function App() {
                 const s1 = chart.palaces.find((p) => p.branch === cur.relationships.sandwich1)!;
                 const s2 = chart.palaces.find((p) => p.branch === cur.relationships.sandwich2)!;
 
+                const activeMl = chart.majorLimits.find((m) => m.index === selectedMajorLimitIndex) || chart.majorLimits[0];
+                const activeAnn = chart.annualCharts.find((a) => a.year === selectedAnnualYear) || chart.annualCharts[0];
+                const mlMingPal = chart.palaces.find((p) => p.branch === activeMl?.branch);
+                const mlMingIdx = mlMingPal ? chart.palaces.indexOf(mlMingPal) : 0;
+                const annMingPal = chart.palaces.find((p) => p.branch === activeAnn?.annualMingBranch);
+                const annMingIdx = annMingPal ? chart.palaces.indexOf(annMingPal) : 0;
+
+                const getPalaceOverlayPills = (targetPalace: typeof cur) => {
+                  const pIdx = chart.palaces.indexOf(targetPalace);
+                  const diffMl = (pIdx - mlMingIdx + 12) % 12;
+                  const diffAnn = (pIdx - annMingIdx + 12) % 12;
+                  return {
+                    major: '大' + PALACE_NAMES[diffMl].replace('宮', ''),
+                    annual: '年' + PALACE_NAMES[diffAnn].replace('宮', ''),
+                  };
+                };
+
+                const renderInspectorCard = (target: typeof cur, label: string, colorStyle: string, textColor: string) => {
+                  const overlay = getPalaceOverlayPills(target);
+                  return (
+                    <div className={`p-3 ${colorStyle} rounded-lg flex flex-col justify-between border`}>
+                      <div>
+                        <div className={`flex items-center justify-between font-bold mb-1 ${textColor}`}>
+                          <span>{label} ({target.name})</span>
+                          <span className="font-mono font-normal text-slate-400">{target.stem}{target.branch}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 my-1.5 flex-wrap">
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-950/80 text-purple-300 border border-purple-800">
+                            {overlay.major}
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+                            {overlay.annual}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="font-semibold text-white mt-1 pt-1 border-t border-slate-700/50">
+                        {target.mainStars.map((s) => s.name).join('、') || '無主星'}
+                      </div>
+                    </div>
+                  );
+                };
+
                 return (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-xs">
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/40 rounded-lg">
-                      <div className="text-amber-400 font-bold mb-1">本宮 ({cur.name})</div>
-                      <div className="font-mono text-slate-400">{cur.stem}{cur.branch}</div>
-                      <div className="font-semibold text-white mt-1">
-                        {cur.mainStars.map((s) => s.name).join('、') || '無主星'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-rose-500/10 border border-rose-500/40 rounded-lg">
-                      <div className="text-rose-400 font-bold mb-1">對宮 ({opp.name})</div>
-                      <div className="font-mono text-slate-400">{opp.stem}{opp.branch}</div>
-                      <div className="font-semibold text-white mt-1">
-                        {opp.mainStars.map((s) => s.name).join('、') || '無主星'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/40 rounded-lg">
-                      <div className="text-indigo-400 font-bold mb-1">三合一 ({t1.name})</div>
-                      <div className="font-mono text-slate-400">{t1.stem}{t1.branch}</div>
-                      <div className="font-semibold text-white mt-1">
-                        {t1.mainStars.map((s) => s.name).join('、') || '無主星'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/40 rounded-lg">
-                      <div className="text-indigo-400 font-bold mb-1">三合二 ({t2.name})</div>
-                      <div className="font-mono text-slate-400">{t2.stem}{t2.branch}</div>
-                      <div className="font-semibold text-white mt-1">
-                        {t2.mainStars.map((s) => s.name).join('、') || '無主星'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-teal-500/10 border border-teal-500/40 rounded-lg">
-                      <div className="text-teal-400 font-bold mb-1">夾宮前 ({s1.name})</div>
-                      <div className="font-mono text-slate-400">{s1.stem}{s1.branch}</div>
-                      <div className="font-semibold text-white mt-1">
-                        {s1.mainStars.map((s) => s.name).join('、') || '無主星'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-teal-500/10 border border-teal-500/40 rounded-lg">
-                      <div className="text-teal-400 font-bold mb-1">夾宮後 ({s2.name})</div>
-                      <div className="font-mono text-slate-400">{s2.stem}{s2.branch}</div>
-                      <div className="font-semibold text-white mt-1">
-                        {s2.mainStars.map((s) => s.name).join('、') || '無主星'}
-                      </div>
-                    </div>
+                    {renderInspectorCard(cur, '本宮', 'bg-amber-500/10 border-amber-500/40', 'text-amber-400')}
+                    {renderInspectorCard(opp, '對宮', 'bg-rose-500/10 border-rose-500/40', 'text-rose-400')}
+                    {renderInspectorCard(t1, '三合一', 'bg-indigo-500/10 border-indigo-500/40', 'text-indigo-400')}
+                    {renderInspectorCard(t2, '三合二', 'bg-indigo-500/10 border-indigo-500/40', 'text-indigo-400')}
+                    {renderInspectorCard(s1, '夾宮前', 'bg-teal-500/10 border-teal-500/40', 'text-teal-400')}
+                    {renderInspectorCard(s2, '夾宮後', 'bg-teal-500/10 border-teal-500/40', 'text-teal-400')}
                   </div>
                 );
               })()}
@@ -320,6 +335,10 @@ export default function App() {
             chart={chart}
             limitDirectionRule={input.limitDirectionRule}
             onChangeLimitDirection={handleChangeLimitDirection}
+            selectedMajorLimitIndex={selectedMajorLimitIndex}
+            onSelectMajorLimitIndex={setSelectedMajorLimitIndex}
+            selectedYear={selectedAnnualYear}
+            onSelectYear={setSelectedAnnualYear}
           />
         )}
 

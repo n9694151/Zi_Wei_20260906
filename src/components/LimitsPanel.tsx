@@ -11,18 +11,33 @@ interface LimitsPanelProps {
   chart: ChartJson;
   limitDirectionRule?: 'auto' | 'clockwise' | 'counterClockwise';
   onChangeLimitDirection?: (rule: 'auto' | 'clockwise' | 'counterClockwise') => void;
+  selectedMajorLimitIndex?: number;
+  onSelectMajorLimitIndex?: (index: number) => void;
+  selectedYear?: number;
+  onSelectYear?: (year: number) => void;
 }
 
 export const LimitsPanel: React.FC<LimitsPanelProps> = ({
   chart,
   limitDirectionRule = 'auto',
   onChangeLimitDirection,
+  selectedMajorLimitIndex = 1,
+  onSelectMajorLimitIndex,
+  selectedYear: controlledSelectedYear,
+  onSelectYear,
 }) => {
-  const [selectedYear, setSelectedYear] = useState<number>(
+  const [internalSelectedYear, setInternalSelectedYear] = useState<number>(
     chart.annualCharts[0]?.year || parseInt(chart.calendar.solarDate.slice(0, 4), 10),
   );
 
-  const currentAnnual = chart.annualCharts.find((a) => a.year === selectedYear) || chart.annualCharts[0];
+  const activeYear = controlledSelectedYear ?? internalSelectedYear;
+
+  const handleYearChange = (yr: number) => {
+    setInternalSelectedYear(yr);
+    onSelectYear?.(yr);
+  };
+
+  const currentAnnual = chart.annualCharts.find((a) => a.year === activeYear) || chart.annualCharts[0];
   const isClockwise = chart.majorLimits[0]?.direction === 'clockwise';
 
   return (
@@ -82,23 +97,35 @@ export const LimitsPanel: React.FC<LimitsPanelProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-          {chart.majorLimits.map((ml) => (
-            <div
-              key={ml.index}
-              className="p-3 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800/80 hover:border-slate-700 transition-colors"
-            >
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-                <span className="font-mono font-medium">{ml.startAge}-{ml.endAge}歲</span>
-                <span className="text-[10px] text-slate-500">第{ml.index}限</span>
+          {chart.majorLimits.map((ml) => {
+            const isSelectedMl = ml.index === selectedMajorLimitIndex;
+            return (
+              <div
+                key={ml.index}
+                onClick={() => onSelectMajorLimitIndex?.(ml.index)}
+                className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                  isSelectedMl
+                    ? 'border-purple-500 ring-2 ring-purple-500/70 bg-purple-950/40 shadow-md'
+                    : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800/80 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                  <span className="font-mono font-medium">{ml.startAge}-{ml.endAge}歲</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold ${
+                    isSelectedMl ? 'bg-purple-500 text-white' : 'text-slate-500 bg-slate-800'
+                  }`}>
+                    第{ml.index}限
+                  </span>
+                </div>
+                <div className="font-serif font-bold text-sm text-amber-400">
+                  {ml.palace}
+                </div>
+                <div className="text-xs font-mono text-indigo-400 font-semibold mt-0.5">
+                  {ml.stem}{ml.branch}
+                </div>
               </div>
-              <div className="font-serif font-bold text-sm text-amber-400">
-                {ml.palace}
-              </div>
-              <div className="text-xs font-mono text-indigo-400 font-semibold mt-0.5">
-                {ml.stem}{ml.branch}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -107,23 +134,23 @@ export const LimitsPanel: React.FC<LimitsPanelProps> = ({
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-amber-500" />
-            <h3 className="font-serif font-bold text-base sm:text-lg text-white">流年太歲行度（首12年）</h3>
+            <h3 className="font-serif font-bold text-base sm:text-lg text-white">流年太歲行度（點擊選取切換）</h3>
           </div>
-          <span className="text-xs text-slate-400">點擊年份切換流年盤</span>
+          <span className="text-xs text-slate-400">點擊年份切換流年盤與本命疊宮</span>
         </div>
 
         {/* Year Pills */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           {chart.annualCharts.map((item) => {
-            const isSelected = item.year === selectedYear;
+            const isSelected = item.year === activeYear;
             return (
               <button
                 key={item.year}
                 type="button"
-                onClick={() => setSelectedYear(item.year)}
+                onClick={() => handleYearChange(item.year)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   isSelected
-                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs font-bold'
                     : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700/80'
                 }`}
               >

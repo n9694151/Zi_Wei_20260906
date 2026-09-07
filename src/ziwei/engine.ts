@@ -99,12 +99,12 @@ export class ZiWeiEngine {
       input.limitDirectionRule,
     );
 
-    // 11. Annual Charts (流年 - default first 12 years starting from birth or requested year)
+    // 11. Annual Charts (流年 - 產生 24 年供大限與流年三盤同參)
     const birthSolarYear = parseInt(calendar.solarDate.slice(0, 4), 10);
     const annualCharts = AnnualChartEngine.generateRange(
       birthSolarYear,
       birthSolarYear,
-      12,
+      24,
       palaces,
     );
 
