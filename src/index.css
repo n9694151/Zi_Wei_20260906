@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+/* 隱藏原生捲軸但保留平滑滑動 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 微光發光動畫 */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+  }
+}
+
+.glow-active {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}

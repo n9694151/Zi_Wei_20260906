@@ -8,7 +8,9 @@ import { ChartJson } from '../ziwei/types/chart';
 import { EarthlyBranch, PalaceName, PALACE_NAMES, HeavenlyStem } from '../ziwei/types/constants';
 import { PalaceInfo } from '../ziwei/types/palace';
 import { FOUR_TRANSFORM_RULES } from '../ziwei/transform/fourTransformRules';
-import { Sparkles, Compass, Layers, Clock, Calendar, Share2 } from 'lucide-react';
+import { Sparkles, Compass, Layers, Clock, Calendar, Share2, Grid, Columns } from 'lucide-react';
+import { MobileZiweiView } from './MobileZiweiView';
+import { EffectiveDevice } from '../ziwei/types/viewport';
 
 interface ZiweiGridProps {
   chart: ChartJson;
@@ -24,6 +26,8 @@ interface ZiweiGridProps {
   onToggleShowMajorLimit?: () => void;
   showAnnual?: boolean;
   onToggleShowAnnual?: () => void;
+  // 設備畫面呈現
+  effectiveDevice?: EffectiveDevice;
 }
 
 // 4x4 宮位地支坐標對應表
@@ -65,7 +69,29 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({
   onToggleShowMajorLimit,
   showAnnual = true,
   onToggleShowAnnual,
+  effectiveDevice = 'desktop',
 }) => {
+  // 手機模式直接委任專屬行動端檢視
+  if (effectiveDevice === 'mobile') {
+    return (
+      <MobileZiweiView
+        chart={chart}
+        selectedPalaceName={selectedPalaceName}
+        onSelectPalace={onSelectPalace}
+        onQuickLoadGolden={onQuickLoadGolden}
+        selectedMajorLimitIndex={selectedMajorLimitIndex}
+        onSelectMajorLimitIndex={onSelectMajorLimitIndex}
+        selectedAnnualYear={selectedAnnualYear}
+        onSelectAnnualYear={onSelectAnnualYear}
+        showMajorLimit={showMajorLimit}
+        onToggleShowMajorLimit={onToggleShowMajorLimit}
+        showAnnual={showAnnual}
+        onToggleShowAnnual={onToggleShowAnnual}
+      />
+    );
+  }
+
+  const [tabletViewMode, setTabletViewMode] = useState<'grid' | 'split'>('grid');
   const [showSanFangLines, setShowSanFangLines] = useState<boolean>(true);
   const [showTransforms, setShowTransforms] = useState<boolean>(true);
 
@@ -341,7 +367,11 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({
         key={branch}
         id={`palace-card-${branch}`}
         onClick={() => onSelectPalace(p.name)}
-        className={`relative flex flex-col justify-between p-2.5 sm:p-3 rounded-lg border transition-all duration-200 cursor-pointer min-h-[145px] sm:min-h-[175px] z-10 ${getHighlightClass(
+        className={`relative flex flex-col justify-between ${
+          effectiveDevice === 'tablet'
+            ? 'p-2 sm:p-2.5 min-h-[135px] text-xs'
+            : 'p-2.5 sm:p-3 min-h-[145px] sm:min-h-[175px]'
+        } rounded-lg border transition-all duration-200 cursor-pointer z-10 ${getHighlightClass(
           branch,
         )}`}
       >
@@ -627,6 +657,35 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({
                 流年宮位
               </button>
             )}
+
+            {effectiveDevice === 'tablet' && (
+              <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-700/80">
+                <button
+                  type="button"
+                  onClick={() => setTabletViewMode('grid')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                    tabletViewMode === 'grid'
+                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Grid className="w-3 h-3" />
+                  <span>4x4 天盤</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTabletViewMode('split')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+                    tabletViewMode === 'split'
+                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Columns className="w-3 h-3" />
+                  <span>雙欄工作區</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -663,209 +722,404 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({
         )}
       </div>
 
-      {/* 4x4 Grid Container with SVG Overlay */}
-      <div ref={gridContainerRef} className="relative w-full">
-        {/* SVG Dashed Lines for San Fang Si Zheng (三方四正虛線連線) */}
-        {showSanFangLines && lineCoords && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-30">
-            <defs>
-              <filter id="glow-gold" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-
-            {/* 1. 三合三角形 (本宮 -> 三合一 -> 三合二 -> 本宮) */}
-            <polygon
-              points={`${lineCoords.benGong.x},${lineCoords.benGong.y} ${lineCoords.trine1.x},${lineCoords.trine1.y} ${lineCoords.trine2.x},${lineCoords.trine2.y}`}
-              fill="rgba(245, 158, 11, 0.04)"
-              stroke="#f59e0b"
-              strokeWidth="2.5"
-              strokeDasharray="7 5"
-              filter="url(#glow-gold)"
-            />
-
-            {/* 2. 對宮連線 (本宮 -> 對宮 穿心衝照) */}
-            <line
-              x1={lineCoords.benGong.x}
-              y1={lineCoords.benGong.y}
-              x2={lineCoords.duiGong.x}
-              y2={lineCoords.duiGong.y}
-              stroke="#f43f5e"
-              strokeWidth="2.5"
-              strokeDasharray="7 5"
-            />
-
-            {/* 3. 節點端點標記 (Glowing Node Dots) */}
-            {/* 本宮端點 (金色強烈光環) */}
-            <circle
-              cx={lineCoords.benGong.x}
-              cy={lineCoords.benGong.y}
-              r="7"
-              fill="#f59e0b"
-              stroke="#ffffff"
-              strokeWidth="2"
-            />
-
-            {/* 對宮端點 (玫瑰紅) */}
-            <circle
-              cx={lineCoords.duiGong.x}
-              cy={lineCoords.duiGong.y}
-              r="5.5"
-              fill="#f43f5e"
-              stroke="#ffffff"
-              strokeWidth="1.5"
-            />
-
-            {/* 三合一端點 (靛藍) */}
-            <circle
-              cx={lineCoords.trine1.x}
-              cy={lineCoords.trine1.y}
-              r="5.5"
-              fill="#6366f1"
-              stroke="#ffffff"
-              strokeWidth="1.5"
-            />
-
-            {/* 三合二端點 (靛藍) */}
-            <circle
-              cx={lineCoords.trine2.x}
-              cy={lineCoords.trine2.y}
-              r="5.5"
-              fill="#6366f1"
-              stroke="#ffffff"
-              strokeWidth="1.5"
-            />
-          </svg>
-        )}
-
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {/* Row 1: 巳(0,0), 午(0,1), 未(0,2), 申(0,3) */}
-          {renderPalaceCard('巳')}
-          {renderPalaceCard('午')}
-          {renderPalaceCard('未')}
-          {renderPalaceCard('申')}
-
-          {/* Row 2: 辰(1,0), Center Courtyard (col-span-2 row-span-2), 酉(1,3) */}
-          {renderPalaceCard('辰')}
-
-          {/* Center Courtyard (中堂) */}
-          <div
-            id="center-courtyard"
-            className="col-span-2 row-span-2 p-4 sm:p-6 rounded-xl bg-[#0a0f1d] text-slate-200 shadow-2xl flex flex-col justify-between border-2 border-slate-800 z-10"
-          >
-            {/* Top Bar */}
-            <div>
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-                <div className="flex items-center gap-2.5">
-                  <Compass className="w-5 h-5 text-amber-500" />
-                  <h2 className="font-serif font-bold text-xl sm:text-2xl text-amber-500 tracking-widest">
-                    {chart.birth.name || '紫微天盤'}
-                  </h2>
-                  <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                    {chart.birth.gender === 'male' ? '乾造' : '坤造'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    三盤合參中
-                  </span>
-                </div>
-              </div>
-
-              {/* Core Ganzhi & Calendar Metadata */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
-                  <div className="text-[10px] uppercase text-slate-500 font-bold">年柱干支</div>
-                  <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
-                    {chart.ganzhi.yearGanZhi.name}
-                  </div>
-                </div>
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
-                  <div className="text-[10px] uppercase text-slate-500 font-bold">月柱干支</div>
-                  <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
-                    {chart.ganzhi.monthGanZhi.name}
-                  </div>
-                </div>
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
-                  <div className="text-[10px] uppercase text-slate-500 font-bold">日柱干支</div>
-                  <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
-                    {chart.ganzhi.dayGanZhi.name}
-                  </div>
-                </div>
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
-                  <div className="text-[10px] uppercase text-slate-500 font-bold">時柱干支</div>
-                  <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
-                    {chart.ganzhi.hourGanZhi.name}
-                  </div>
-                </div>
-              </div>
-
-              {/* Astrological Parameters */}
-              <div className="space-y-1.5 text-xs text-slate-300 bg-slate-900/60 p-3 rounded-lg border border-slate-800 mb-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">五行局數</span>
-                  <span className="font-bold text-slate-200 font-mono">
-                    {chart.wuxingJu.wuxingJu}（{chart.wuxingJu.ziweiStartingAge}歲起運）
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">本命 命身宮</span>
-                  <span className="font-mono">
-                    命宮【<span className="text-emerald-400 font-bold">{chart.mingGong.stem}{chart.mingGong.branch}</span>】 · 身宮【<span className="text-amber-400 font-bold">{chart.shenGong.stem}{chart.shenGong.branch}</span>】
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">當前大限 (大運)</span>
-                  <span className="font-mono text-purple-300 font-bold">
-                    第{activeMajorLimit.index}限【{activeMajorLimit.palace}·{activeMajorLimit.stem}{activeMajorLimit.branch}】（{activeMajorLimit.startAge}-{activeMajorLimit.endAge}歲）
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">當前流年太歲</span>
-                  <span className="font-mono text-cyan-300 font-bold">
-                    {activeAnnual.year} {activeAnnual.yearGan}{activeAnnual.yearZhi}年【流年{activeAnnual.annualMingPalace}·{activeAnnual.annualMingBranch}位】（虛歲{activeAnnual.age}歲）
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-slate-800 font-mono">
-                  <span>陽曆：{chart.calendar.solarDate} {chart.calendar.solarTime}</span>
-                  <span>農曆：{chart.calendar.lunarMonthName}{chart.calendar.lunarDayName}</span>
-                </div>
-              </div>
+      {effectiveDevice === 'tablet' && tabletViewMode === 'split' ? (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* 左側：十二宮速選 3x4 網格 (5 cols) */}
+          <div className="md:col-span-5 bg-[#111827] rounded-xl border border-slate-800 p-3 space-y-3 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="font-serif font-bold text-amber-400 text-sm">十二宮位速選</span>
+              <span className="text-[11px] text-slate-400">點選切換詳解</span>
             </div>
 
-            {/* Quick Actions at Courtyard bottom */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={onQuickLoadGolden}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition-all"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                載入黃金測試 #001 (丁酉命)
-              </button>
+            <div className="grid grid-cols-3 gap-2">
+              {chart.palaces.map((p) => {
+                const isSelected = p.name === selectedPalaceName;
+                const { majorPalaceShort, annualPalaceShort } = getOverlayPalaceNames(p);
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => onSelectPalace(p.name)}
+                    className={`p-2 rounded-lg border text-left flex flex-col justify-between min-h-[78px] transition-all ${
+                      isSelected
+                        ? 'bg-amber-500/20 border-amber-400 shadow-md ring-1 ring-amber-400'
+                        : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs font-serif text-amber-300">{p.name}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{p.branch}</span>
+                    </div>
 
-              <span className="text-[11px] text-amber-300/80 font-medium">
-                點擊任一宮位即連動三方四正金色/紅色動態虛線
-              </span>
+                    <div className="text-xs text-white font-serif font-bold truncate my-1">
+                      {p.mainStars.map((s) => s.name).join('、') || '空宮'}
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[9px] font-mono">
+                      <span className="text-purple-300">{majorPalaceShort}</span>
+                      <span className="text-cyan-300">{annualPalaceShort}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 中堂核心八字與五行局摘要 */}
+            <div className="bg-[#0a0f1d] rounded-lg p-3 border border-slate-800 text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-amber-400 font-bold">{chart.birth.name || '命主'} ({chart.birth.gender === 'male' ? '乾造' : '坤造'})</span>
+                <span className="font-mono text-slate-300">{chart.wuxingJu.wuxingJu}</span>
+              </div>
+              <div className="text-[11px] text-slate-400 font-mono">
+                {chart.ganzhi.yearGanZhi.name}年 {chart.ganzhi.monthGanZhi.name}月 {chart.ganzhi.dayGanZhi.name}日 {chart.ganzhi.hourGanZhi.name}時
+              </div>
+              <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/80">
+                <span>陽曆：{chart.calendar.solarDate}</span>
+                <button
+                  type="button"
+                  onClick={onQuickLoadGolden}
+                  className="text-[10px] bg-amber-500/20 text-amber-300 py-0.5 px-2 rounded border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 font-semibold"
+                >
+                  黃金測試一號
+                </button>
+              </div>
             </div>
           </div>
 
-          {renderPalaceCard('酉')}
+          {/* 右側：焦點宮位 Hero 卡 + 三方四正 2x2 (7 cols) */}
+          <div className="md:col-span-7 space-y-3.5">
+            {/* 焦點宮位卡片 */}
+            <div className="bg-[#111827] rounded-xl border-2 border-amber-500/40 p-4 shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-serif font-bold text-xl text-amber-400">
+                    【{selectedPalace.name}】
+                  </span>
+                  <span className="font-mono text-sm px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
+                    {selectedPalace.stem}{selectedPalace.branch}位
+                  </span>
+                  {selectedPalace.isMingGong && (
+                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500 text-slate-950">命宮</span>
+                  )}
+                  {selectedPalace.isShenGong && (
+                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-500 text-slate-950">身宮</span>
+                  )}
+                </div>
 
-          {/* Row 3: 卯(2,0), 戌(2,3) */}
-          {renderPalaceCard('卯')}
-          {renderPalaceCard('戌')}
+                {selectedPalace.majorLimit && (
+                  <span className="text-xs font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800">
+                    {selectedPalace.majorLimit.startAge}-{selectedPalace.majorLimit.endAge}歲
+                  </span>
+                )}
+              </div>
 
-          {/* Row 4: 寅(3,0), 丑(3,1), 子(3,2), 亥(3,3) */}
-          {renderPalaceCard('寅')}
-          {renderPalaceCard('丑')}
-          {renderPalaceCard('子')}
-          {renderPalaceCard('亥')}
+              {/* 主星群 */}
+              <div className="bg-slate-900/90 rounded-lg p-3 border border-slate-800">
+                <div className="text-[11px] font-bold text-slate-400 mb-1.5">主星坐守</div>
+                {selectedPalace.mainStars.length === 0 ? (
+                  <div className="text-xs text-slate-500 italic">空宮借對</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPalace.mainStars.map((star) => {
+                      const sTransforms = showTransforms ? getStarTransforms(star.name) : [];
+                      return (
+                        <div
+                          key={star.name}
+                          className="inline-flex items-center gap-1.5 bg-[#0a0f1d] px-2.5 py-1.5 rounded-lg border border-amber-500/40"
+                        >
+                          <span className="font-serif font-bold text-base text-amber-300">{star.name}</span>
+                          {star.brightness && <span className="text-xs text-amber-400/90">{star.brightness}</span>}
+                          {sTransforms.map((t, idx) => (
+                            <span key={idx} className={`px-1 rounded text-[10px] font-mono font-bold border ${t.badgeClass}`}>
+                              {t.label}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 三代四化與吉煞 */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-slate-900/60 p-2.5 rounded-lg border border-indigo-900/40">
+                  <div className="text-[11px] font-bold text-indigo-400 mb-1">吉星輔曜</div>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedPalace.auxiliaryStars.map((s) => (
+                      <span key={s.name} className="px-1.5 py-0.5 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800/40 text-[11px]">
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/60 p-2.5 rounded-lg border border-rose-900/40">
+                  <div className="text-[11px] font-bold text-rose-400 mb-1">煞星耗曜</div>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedPalace.maleficStars.map((s) => (
+                      <span key={s.name} className="px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-300 border border-rose-800/40 text-[11px]">
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 三方四正 2x2 矩陣 */}
+            <div className="bg-[#111827] rounded-xl border border-slate-800 p-3 shadow-lg space-y-2">
+              <div className="text-xs font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span>三方四正照會關係</span>
+                <span className="text-[10px] text-slate-400 font-normal">點擊切換焦點</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {(() => {
+                  const opp = chart.palaces.find((p) => p.branch === rel.opposite)!;
+                  const t1 = chart.palaces.find((p) => p.branch === rel.trine1)!;
+                  const t2 = chart.palaces.find((p) => p.branch === rel.trine2)!;
+
+                  const renderCard = (target: PalaceInfo, label: string, style: string, textColor: string) => {
+                    const { majorPalaceShort, annualPalaceShort } = getOverlayPalaceNames(target);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onSelectPalace(target.name)}
+                        className={`p-2.5 rounded-lg border text-left ${style} hover:border-amber-400 transition-all`}
+                      >
+                        <div className={`flex items-center justify-between font-bold mb-1 ${textColor}`}>
+                          <span>{label} ({target.name})</span>
+                          <span className="font-mono text-[11px] text-slate-400">{target.stem}{target.branch}</span>
+                        </div>
+                        <div className="flex items-center gap-1 mb-1 text-[10px]">
+                          <span className="px-1 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-800">{majorPalaceShort}</span>
+                          <span className="px-1 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">{annualPalaceShort}</span>
+                        </div>
+                        <div className="font-serif font-bold text-white truncate">
+                          {target.mainStars.map((s) => s.name).join('、') || '空宮借對'}
+                        </div>
+                      </button>
+                    );
+                  };
+
+                  return (
+                    <>
+                      {renderCard(selectedPalace, '本宮', 'bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-400', 'text-amber-400')}
+                      {renderCard(opp, '對宮', 'bg-rose-500/10 border-rose-500/40', 'text-rose-400')}
+                      {renderCard(t1, '三合一', 'bg-indigo-500/10 border-indigo-500/40', 'text-indigo-400')}
+                      {renderCard(t2, '三合二', 'bg-indigo-500/10 border-indigo-500/40', 'text-indigo-400')}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* 4x4 Grid Container with SVG Overlay */
+        <div ref={gridContainerRef} className="relative w-full">
+          {/* SVG Dashed Lines for San Fang Si Zheng (三方四正虛線連線) */}
+          {showSanFangLines && lineCoords && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-30">
+              <defs>
+                <filter id="glow-gold" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              {/* 1. 三合三角形 (本宮 -> 三合一 -> 三合二 -> 本宮) */}
+              <polygon
+                points={`${lineCoords.benGong.x},${lineCoords.benGong.y} ${lineCoords.trine1.x},${lineCoords.trine1.y} ${lineCoords.trine2.x},${lineCoords.trine2.y}`}
+                fill="rgba(245, 158, 11, 0.04)"
+                stroke="#f59e0b"
+                strokeWidth="2.5"
+                strokeDasharray="7 5"
+                filter="url(#glow-gold)"
+              />
+
+              {/* 2. 對宮連線 (本宮 -> 對宮 穿心衝照) */}
+              <line
+                x1={lineCoords.benGong.x}
+                y1={lineCoords.benGong.y}
+                x2={lineCoords.duiGong.x}
+                y2={lineCoords.duiGong.y}
+                stroke="#f43f5e"
+                strokeWidth="2.5"
+                strokeDasharray="7 5"
+              />
+
+              {/* 3. 節點端點標記 (Glowing Node Dots) */}
+              {/* 本宮端點 (金色強烈光環) */}
+              <circle
+                cx={lineCoords.benGong.x}
+                cy={lineCoords.benGong.y}
+                r="7"
+                fill="#f59e0b"
+                stroke="#ffffff"
+                strokeWidth="2"
+              />
+
+              {/* 對宮端點 (玫瑰紅) */}
+              <circle
+                cx={lineCoords.duiGong.x}
+                cy={lineCoords.duiGong.y}
+                r="5.5"
+                fill="#f43f5e"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+
+              {/* 三合一端點 (靛藍) */}
+              <circle
+                cx={lineCoords.trine1.x}
+                cy={lineCoords.trine1.y}
+                r="5.5"
+                fill="#6366f1"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+
+              {/* 三合二端點 (靛藍) */}
+              <circle
+                cx={lineCoords.trine2.x}
+                cy={lineCoords.trine2.y}
+                r="5.5"
+                fill="#6366f1"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+            </svg>
+          )}
+
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+            {/* Row 1: 巳(0,0), 午(0,1), 未(0,2), 申(0,3) */}
+            {renderPalaceCard('巳')}
+            {renderPalaceCard('午')}
+            {renderPalaceCard('未')}
+            {renderPalaceCard('申')}
+
+            {/* Row 2: 辰(1,0), Center Courtyard (col-span-2 row-span-2), 酉(1,3) */}
+            {renderPalaceCard('辰')}
+
+            {/* Center Courtyard (中堂) */}
+            <div
+              id="center-courtyard"
+              className="col-span-2 row-span-2 p-3 sm:p-5 rounded-xl bg-[#0a0f1d] text-slate-200 shadow-2xl flex flex-col justify-between border-2 border-slate-800 z-10"
+            >
+              {/* Top Bar */}
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Compass className="w-5 h-5 text-amber-500" />
+                    <h2 className="font-serif font-bold text-xl sm:text-2xl text-amber-500 tracking-widest">
+                      {chart.birth.name || '紫微天盤'}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                      {chart.birth.gender === 'male' ? '乾造' : '坤造'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      三盤合參中
+                    </span>
+                  </div>
+                </div>
+
+                {/* Core Ganzhi & Calendar Metadata */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
+                  <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold">年柱干支</div>
+                    <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
+                      {chart.ganzhi.yearGanZhi.name}
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold">月柱干支</div>
+                    <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
+                      {chart.ganzhi.monthGanZhi.name}
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold">日柱干支</div>
+                    <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
+                      {chart.ganzhi.dayGanZhi.name}
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold">時柱干支</div>
+                    <div className="font-bold text-slate-200 font-mono text-sm mt-0.5">
+                      {chart.ganzhi.hourGanZhi.name}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Astrological Parameters */}
+                <div className="space-y-1.5 text-xs text-slate-300 bg-slate-900/60 p-3 rounded-lg border border-slate-800 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-medium">五行局數</span>
+                    <span className="font-bold text-slate-200 font-mono">
+                      {chart.wuxingJu.wuxingJu}（{chart.wuxingJu.ziweiStartingAge}歲起運）
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-medium">本命 命身宮</span>
+                    <span className="font-mono">
+                      命宮【<span className="text-emerald-400 font-bold">{chart.mingGong.stem}{chart.mingGong.branch}</span>】 · 身宮【<span className="text-amber-400 font-bold">{chart.shenGong.stem}{chart.shenGong.branch}</span>】
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-medium">當前大限 (大運)</span>
+                    <span className="font-mono text-purple-300 font-bold">
+                      第{activeMajorLimit.index}限【{activeMajorLimit.palace}·{activeMajorLimit.stem}{activeMajorLimit.branch}】（{activeMajorLimit.startAge}-{activeMajorLimit.endAge}歲）
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 font-medium">當前流年太歲</span>
+                    <span className="font-mono text-cyan-300 font-bold">
+                      {activeAnnual.year} {activeAnnual.yearGan}{activeAnnual.yearZhi}年【流年{activeAnnual.annualMingPalace}·{activeAnnual.annualMingBranch}位】（虛歲{activeAnnual.age}歲）
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1.5 border-t border-slate-800 font-mono">
+                    <span>陽曆：{chart.calendar.solarDate} {chart.calendar.solarTime}</span>
+                    <span>農曆：{chart.calendar.lunarMonthName}{chart.calendar.lunarDayName}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions at Courtyard bottom */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={onQuickLoadGolden}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  載入黃金測試 #001 (丁酉命)
+                </button>
+
+                <span className="text-[11px] text-amber-300/80 font-medium">
+                  點擊任一宮位即連動三方四正金色/紅色動態虛線
+                </span>
+              </div>
+            </div>
+
+            {renderPalaceCard('酉')}
+
+            {/* Row 3: 卯(2,0), 戌(2,3) */}
+            {renderPalaceCard('卯')}
+            {renderPalaceCard('戌')}
+
+            {/* Row 4: 寅(3,0), 丑(3,1), 子(3,2), 亥(3,3) */}
+            {renderPalaceCard('寅')}
+            {renderPalaceCard('丑')}
+            {renderPalaceCard('子')}
+            {renderPalaceCard('亥')}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

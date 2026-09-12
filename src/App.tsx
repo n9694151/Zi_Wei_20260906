@@ -14,6 +14,7 @@ import { SchoolAnalysisTabs } from './components/SchoolAnalysisTabs';
 import { LimitsPanel } from './components/LimitsPanel';
 import { GeminiInterpretation } from './components/GeminiInterpretation';
 import { JsonViewer } from './components/JsonViewer';
+import { DeviceMode, useResponsiveDevice } from './ziwei/types/viewport';
 import {
   Compass,
   Layers,
@@ -24,6 +25,9 @@ import {
   Code,
   SlidersHorizontal,
   Bot,
+  Monitor,
+  Tablet,
+  Smartphone,
 } from 'lucide-react';
 
 const GOLDEN_TEST_001_INPUT: BirthInput = {
@@ -43,6 +47,10 @@ export default function App() {
   const [input, setInput] = useState<BirthInput>(GOLDEN_TEST_001_INPUT);
   const [selectedPalaceName, setSelectedPalaceName] = useState<PalaceName>('命宮');
   const [activeTab, setActiveTab] = useState<'grid' | 'schools' | 'limits' | 'ai' | 'form' | 'json'>('grid');
+
+  // 畫面呈現模式（電腦 / 平板 / 手機 / 自動偵測）
+  const [deviceMode, setDeviceMode] = useState<DeviceMode>('auto');
+  const { windowWidth, effectiveDevice } = useResponsiveDevice(deviceMode);
 
   // 三盤合參狀態（大運與流年即時聯動）
   const [selectedMajorLimitIndex, setSelectedMajorLimitIndex] = useState<number>(1);
@@ -103,15 +111,78 @@ export default function App() {
             </div>
           </div>
 
-          {/* Golden Test Quick Action & Controls */}
-          <div className="flex items-center gap-3">
+          {/* Controls: Device Presentation Mode Switcher & Quick Actions */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* 畫面呈現模式切換器 (電腦 / 平板 / 手機) */}
+            <div className="flex items-center bg-slate-900/90 p-0.5 sm:p-1 rounded-xl border border-slate-700/80 text-xs shadow-inner">
+              <button
+                type="button"
+                onClick={() => setDeviceMode('auto')}
+                className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  deviceMode === 'auto'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="自動依螢幕尺寸調整"
+              >
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>自動</span>
+                <span className="text-[10px] opacity-80 hidden md:inline">
+                  ({effectiveDevice === 'desktop' ? '電腦' : effectiveDevice === 'tablet' ? '平板' : '手機'})
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeviceMode('desktop')}
+                className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  deviceMode === 'desktop'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="電腦畫面（寬螢幕全盤 4x4 天盤）"
+              >
+                <Monitor className="w-3 h-3" />
+                <span>電腦</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeviceMode('tablet')}
+                className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  deviceMode === 'tablet'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="平板畫面（觸控天盤 / 雙欄工作區）"
+              >
+                <Tablet className="w-3 h-3" />
+                <span>平板</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeviceMode('mobile')}
+                className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  deviceMode === 'mobile'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+                title="手機畫面（單宮焦點 + 三方四正 + 橫向滑動列）"
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>手機</span>
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={handleLoadGolden}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-500/50 shadow-xs transition-all"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              載入黃金測試 #001
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">黃金測試 #001</span>
+              <span className="sm:hidden">測試盤</span>
             </button>
           </div>
         </div>
@@ -119,8 +190,8 @@ export default function App() {
 
       {/* Main Navigation Bar */}
       <nav className="bg-[#111827] border-b border-slate-800 sticky top-[69px] z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 sm:gap-2 overflow-x-auto py-2.5">
-          <div className="flex bg-[#0f172a] rounded-lg p-1 border border-slate-700/80 gap-1">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-2">
+          <div className="flex bg-[#0f172a] rounded-lg p-1 border border-slate-700/80 gap-1 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('grid')}
@@ -203,12 +274,41 @@ export default function App() {
       </nav>
 
       {/* Main Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className={`flex-1 w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 transition-all duration-300 ${
+        effectiveDevice === 'mobile'
+          ? 'max-w-md'
+          : effectiveDevice === 'tablet'
+          ? 'max-w-4xl'
+          : 'max-w-7xl'
+      }`}>
+        {/* 手機 / 平板 模擬提示橫幅（當手動在電腦上強制指定手機或平板模式時提示） */}
+        {deviceMode !== 'auto' && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3.5 py-2 flex items-center justify-between text-xs text-amber-300 shadow-inner">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span className="font-semibold">
+                {deviceMode === 'mobile'
+                  ? '📲 手機畫面呈現模式 (預覽寬度 ~420px)'
+                  : deviceMode === 'tablet'
+                  ? '📱 平板畫面呈現模式 (預覽寬度 ~896px)'
+                  : '💻 電腦畫面呈現模式 (全寬 4x4 天盤)'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDeviceMode('auto')}
+              className="text-[11px] bg-slate-900 px-2 py-0.5 rounded border border-slate-700 hover:bg-slate-800 text-slate-300 transition-all cursor-pointer"
+            >
+              切換為自動偵測
+            </button>
+          </div>
+        )}
+
         {/* Verification Alert Banner */}
-        <div className="bg-[#111827] border border-slate-800 rounded-xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
+        <div className="bg-[#111827] border border-slate-800 rounded-xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-md">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300">
+            <span className="text-slate-300 leading-relaxed">
               <strong className="text-white font-semibold">{chart.birth.name}</strong> ·{' '}
               <span className="text-amber-400 font-mono">{chart.calendar.solarDate} {chart.calendar.solarTime}</span> (真太陽時: {chart.calendar.trueSolarTime}) ·
               農曆 <span className="text-slate-200">{chart.calendar.lunarYear}年{chart.calendar.lunarMonthName}{chart.calendar.lunarDayName}{chart.calendar.hourBranch}時</span> ·
@@ -227,7 +327,7 @@ export default function App() {
 
         {/* Tab Views */}
         {activeTab === 'grid' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <ZiweiGrid
               chart={chart}
               selectedPalaceName={selectedPalaceName}
@@ -241,25 +341,27 @@ export default function App() {
               onToggleShowMajorLimit={() => setShowMajorLimit((prev) => !prev)}
               showAnnual={showAnnual}
               onToggleShowAnnual={() => setShowAnnual((prev) => !prev)}
+              effectiveDevice={effectiveDevice}
             />
 
-            {/* Selected Palace Inspector */}
-            <div className="bg-[#111827] rounded-xl p-4 sm:p-5 border border-slate-800 shadow-xl">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-serif font-bold text-lg text-white">
-                    【{selectedPalaceName}】三方四正與三盤合參
-                  </span>
-                  <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
-                    地支 {chart.palaces.find((p) => p.name === selectedPalaceName)?.stem}
-                    {chart.palaces.find((p) => p.name === selectedPalaceName)?.branch} 位
-                  </span>
-                </div>
+            {/* Selected Palace Inspector (僅在非手機模式時顯示，手機模式已內嵌於行動專屬視圖中) */}
+            {effectiveDevice !== 'mobile' && (
+              <div className="bg-[#111827] rounded-xl p-4 sm:p-5 border border-slate-800 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-serif font-bold text-lg text-white">
+                      【{selectedPalaceName}】三方四正與三盤合參
+                    </span>
+                    <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
+                      地支 {chart.palaces.find((p) => p.name === selectedPalaceName)?.stem}
+                      {chart.palaces.find((p) => p.name === selectedPalaceName)?.branch} 位
+                    </span>
+                  </div>
 
-                <div className="text-xs text-slate-400">
-                  即時聯動本命、大運與流年宮位疊宮關係
+                  <div className="text-xs text-slate-400">
+                    即時聯動本命、大運與流年宮位疊宮關係
+                  </div>
                 </div>
-              </div>
 
               {(() => {
                 const cur = chart.palaces.find((p) => p.name === selectedPalaceName)!;
@@ -323,6 +425,7 @@ export default function App() {
                 );
               })()}
             </div>
+          )}
           </div>
         )}
 
